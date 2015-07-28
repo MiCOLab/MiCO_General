@@ -13,8 +13,8 @@
 	</head>
 	<body></body>
 	<script type="text/javascript">
-		//		apiready = function() {
-		(function(window) {
+		apiready = function() {
+			//		(function(window) {
 			if (!AV.User.current()) {
 				window.location.href = "html/login.html";
 				// 	api.openWin({
@@ -28,7 +28,7 @@
 			} else {
 				window.location.href = "html/devlist.html";
 			}
-		})(window);
-		//		};
+			//		})(window);
+		};
 	</script>
 </html>

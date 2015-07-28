@@ -272,7 +272,7 @@
 		console.error = console.debug = console.info = console.log;
 		//		返回上一页
 		function checkpage() {
-			//关闭mqtt，关闭的时候需要同事关闭消息接收和MQTT连接
+			//关闭mqtt
 			micoMqtt.stopRecvMqttMsg(function(ret, err) {
 			});
 			micoMqtt.stopMqtt(function(ret, err) {
