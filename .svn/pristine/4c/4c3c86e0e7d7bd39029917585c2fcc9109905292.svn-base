@@ -88,21 +88,6 @@ function findUnactiDev() {
 	if (1 == saytag) {
 		apiToast(FIND_UNACTIV_DEV, 5000);
 		saytag = 2;
-		if (1 == searchtag) {
-			hidPro();
-			api.confirm({
-				title : "去绑定已发现的设备",
-				msg : "爱谁，点谁",
-				buttons : [OK_BTN, CANCEL_BTN]
-			}, function(ret, err) {
-				if (ret.buttonIndex == 1) {
-					searchtag = 0;
-					stopmicobind();
-				} else {
-					showProgress(CONNECT_NET, false);
-				}
-			});
-		}
 	}
 }
 
@@ -112,7 +97,7 @@ function stopMdns() {
 	});
 }
 
-//绑定设备
+//获取deviceid
 function ajaxgetdveid(devip) {
 	api.confirm({
 		title : ACTIVATE_DEV,
