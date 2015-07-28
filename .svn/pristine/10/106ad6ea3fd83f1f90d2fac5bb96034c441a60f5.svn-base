@@ -204,32 +204,11 @@ function isphone2(inputString) {
 
 function openIndexWin(){
 //	alert("openIndexWin");
-//	window.location.href = "./devlist.html";
-		api.openWin({
-		name : "index",
-		url : "../index.html",
-		reload : true,
-		bgColor : '#F0F0F0',
-		slidBackEnabled : false,
-		animation : {
-			type : 'none'
-		}
-	})
+	window.location.href = "./devlist.html";
 }
 function openDevlistWin(){
 //	alert("openDevlistWin");
-//	window.location.href = "./devlist.html";
-	
-		api.openWin({
-		name : 'devlist',
-		url : './devlist.html',
-		reload : true,
-		bgColor : '#F0F0F0',
-		slidBackEnabled : false,
-		animation : {
-			type : 'none'
-		}
-	});
+	window.location.href = "./devlist.html";
 }
 
 //发送短信的倒计时程序

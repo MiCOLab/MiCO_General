@@ -70,7 +70,7 @@
 				text-align: center;
 				box-shadow: 3px 3px 3px #e1e1e1;
 			}
-			#backleft {
+			#backleft{
 				display: block;
 			}
 		</style>
@@ -102,11 +102,11 @@
 			<div class="switrgbhow">
 				<table width="100%">
 					<tr align="center" height="114px">
-						<td valign="middle"><img id="switchbtn" src="../image/03-turn-on.png" alt="">
+						<td valign="middle"><img id="switchbtn" src="../image/03-turn-on.svg" alt="">
 						<br/>
 						<span id="switchspan">开</span></td>
 						<!-- <td valign="middle"><hr class="hrline" size="80" /></td> -->
-						<td valign="middle"><img id="rgbimgid" src="../image/02-red.png" alt="">
+						<td valign="middle"><img id="rgbimgid" src="../image/02-red.svg" alt="">
 						<br/>
 						<span>温度阀值</span></td>
 					</tr>
@@ -136,128 +136,126 @@
 			if (device_id !== null) {
 				ez_connect(device_id);
 			}
-			if (api.systemType != 'ios') {
-				api.addEventListener({
-					name : "keyback"
-				}, function(ret, err) {
-					checkpage();
-				});
-			}else{
-				$(".header").css("padding-top", "30px");
-				$(".left").css("top", "32px");
-			}
 		};
 		// 连接MQTT服务
-		var micoMqtt;
 		function ez_connect(device_id) {
+			// 获取access_token
+			// access_token是公众号的全局唯一票据，公众号调用各接口时都需使用access_token。
+			// 正常情况下access_token有效期为7200秒，重复获取将导致上次获取的access_token失效
+			// 	var access_token = getParameterByName('access_token');
 			document.getElementById('device_id').innerHTML = "设备ID：" + device_id;
-			micoMqtt = api.require("micoMqtt2");
-			var host = "api.easylink.io";
-			var username = "";
-			var password = "";
-			var clientID = "v1-app-" + parseInt(Math.random() * 1000000, 12);
-			var topic = device_id + '/out/#';
-			micoMqtt.startMqtt({
-				micoMqtt : micoMqtt,
-				host : host,
-				username : username,
-				password : password,
-				clientID : clientID,
-				topic : topic
-			}, function(ret, err) {
-				if (ret.status) {
-					console.log("连接成功");
-					recvmsg();
-				} else {
-					console.log("连接失败");
-				}
+			// websocket连接
+			// wsbroker:host
+			// wsport:端口 默认1983
+			// Client-ID ： v1_web_[MAC]  //版本号_app_手机MAC(必须是12位小写)
+			var wsbroker = "api.easylink.io";
+			//mqtt websocket enabled broker
+			var wsport = 1983// port for above
+			var client = new Paho.MQTT.Client(wsbroker, wsport, "v1-web-" + parseInt(Math.random() * 1000000, 12));
+			// 基本参数配置
+			// 连接丢失所对应的callback函数
+			client.onConnectionLost = onConnectionLost;
+			// 消息到达所对应的callback函数
+			client.onMessageArrived = onMessageArrived;
+			// 连接成功所对应的callback函数
+			client.connect({
+				onSuccess : onConnect
 			});
-		}
+			// 连接成功
+			function onConnect() {
+				var subtopic = device_id + '/out/#';
+				// Once a connection has been made, make a subscription and send a message.
+				// 向某个通道发送指令
+				// topic：通道
+				// commond：指令
+				client.publish = function(topic, commond) {
+					// console.log("现在执行-->:" + commond);
+					message = new Paho.MQTT.Message(commond);
+					message.destinationName = topic;
+					client.send(message);
+				}
+				// console.log("device_id:" + device_id);
+				console.log("连接成功");
+				client.subscribe(subtopic, {
+					qos : 0
+				});
+			}
 
-		//		接收数据
-		function recvmsg() {
+			// 连接丢失
+			function onConnectionLost(responseObject) {
+				if (responseObject.errorCode !== 0)
+					console.log("连接丢失");
+				// console.log("onConnectionLost:" + responseObject.errorMessage);
+			}
+
+			// 消息到达
 			var msgindex = 1;
 			var msgjson;
-			micoMqtt.recvMqttMsg(function(ret, err) {
-				//				alert(JSON.stringify(ret));
-				if (ret) {
-					if (msgindex > 12) {
-						msgindex = 1;
-						document.getElementById('debug').innerHTML = "";
-					}
-					msgindex++;
-					msgjson = ret.subs;
-					//					 console.log('设备上报:' + msgjson);
-					// console.log('温度 ' +  msgjson.dht11_temperature);
-					var tempval = msgjson.dht11_temperature;
-					// console.log('温度2 ' +  tempval);
-					if ("undefined" != typeof (tempval)) {
-						// 显示温度
-						$("#tempid").text(tempval + "℃");
-						// 显示湿度
-						$("#humiid").text(msgjson.dht11_humidity + "%");
-						// 温度超过29则红灯亮，20-29之间则绿灯亮，低于20黄灯亮
-						if (tempval > 29) {
-							led_red();
-							$("#rgbimgid").attr("src", "../image/02-red.png");
-						} else if (tempval < 30 && (tempval > 19)) {
-							led_green();
-							$("#rgbimgid").attr("src", "../image/02-green.png");
-						} else if (tempval < 20) {
-							led_yellow();
-							$("#rgbimgid").attr("src", "../image/02-yellow.png");
-						}
-					}
-				} else {
-					api.alert({
-						msg : err.msg
-					});
+			function onMessageArrived(message) {
+				// console.log(message.topic + ': ' + message.payloadString);
+				if (msgindex > 12) {
+					msgindex = 1;
+					document.getElementById('debug').innerHTML = "";
 				}
-			});
-		}
-
-		// 控制按钮显示的事件
-		$("#switchbtn").click(function() {
-			var topic = device_id + '/in';
-			var command;
-			var swtimg = $("#switchbtn").attr("src");
-			if ("../image/03-turn-on.png" == swtimg) {
-				command = '{"device_switch":false}';
-				$("#switchbtn").attr("src", "../image/03-turn-off.png");
-				$("#switchspan").text("关");
-			} else {
-				command = '{"device_switch":true}';
-				$("#switchbtn").attr("src", "../image/03-turn-on.png");
-				$("#switchspan").text("开");
+				msgindex++;
+				// console.log('设备上报:' + message.payloadString);
+				msgjson = $.parseJSON(message.payloadString);
+				// console.log('温度 ' +  msgjson.dht11_temperature);
+				var tempval = msgjson.dht11_temperature;
+				// console.log('温度2 ' +  tempval);
+				if ("undefined" != typeof (tempval)) {
+					// 显示温度
+					$("#tempid").text(tempval + "℃");
+					// 显示湿度
+					$("#humiid").text(msgjson.dht11_humidity + "%");
+//					// 温度超过29则红灯亮，20-29之间则绿灯亮，低于20黄灯亮
+//					if (tempval > "29") {
+//						led_red();
+//						$("#rgbimgid").attr("src", "../image/02-red.svg");
+//					} else if (tempval < "30" && (tempval > "19")) {
+//						led_green();
+//						$("#rgbimgid").attr("src", "../image/02-green.svg");
+//					} else if (tempval < "20") {
+//						led_yellow();
+//						$("#rgbimgid").attr("src", "../image/02-yellow.svg");
+//					}
+				}
 			}
-			publishcmd(topic, command);
-		});
-		function publishcmd(topic, command) {
-			//			console.log("发送指令-->" + topic + " " + command);
-			micoMqtt.publish({
-				topic : topic,
-				command : command
-			}, function(ret, err) {
-				//				console.log(ret);
+
+			// 控制按钮显示的事件
+			$("#switchbtn").click(function() {
+				var topic = device_id + '/in';
+				var commond;
+				var swtimg = $("#switchbtn").attr("src");
+				if ("../image/03-turn-on.svg" == swtimg) {
+					commond = '{"device_switch":false}';
+					$("#switchbtn").attr("src", "../image/03-turn-off.svg");
+					$("#switchspan").text("关");
+				} else {
+					commond = '{"device_switch":true}';
+					$("#switchbtn").attr("src", "../image/03-turn-on.svg");
+					$("#switchspan").text("开");
+				}
+				client.publish(topic, commond);
 			});
-		}
+			function led_red() {
+				var topic = device_id + '/in';
+				var commond = '{"rgbled_switch":true,"rgbled_hues":0, "rgbled_saturation":100, "rgbled_brightness":100}';
+				client.publish(topic, commond);
+			}
 
-		function led_red() {
-			var topic = device_id + '/in';
-			var command = '{"rgbled_switch":true,"rgbled_hues":0, "rgbled_saturation":100, "rgbled_brightness":100}';
-			publishcmd(topic, command);
-		}
+			function led_green() {
+				var topic = device_id + '/in';
+				var commond = '{"rgbled_switch":true,"rgbled_hues":120, "rgbled_saturation":100, "rgbled_brightness":100}';
+				client.publish(topic, commond);
+			}
 
-		function led_green() {
-			var topic = device_id + '/in';
-			var command = '{"rgbled_switch":true,"rgbled_hues":120, "rgbled_saturation":100, "rgbled_brightness":100}';
-			publishcmd(topic, command);
-		}
+			function led_yellow() {
+				var topic = device_id + '/in';
+				var commond = '{"rgbled_switch":true,"rgbled_hues":60, "rgbled_saturation":100, "rgbled_brightness":100}';
+				client.publish(topic, commond);
+			}
 
-		function led_yellow() {
-			var topic = device_id + '/in';
-			var command = '{"rgbled_switch":true,"rgbled_hues":60, "rgbled_saturation":100, "rgbled_brightness":100}';
-			publishcmd(topic, command);
 		}
 
 		// 日志打印在页面的部分
@@ -279,10 +277,9 @@
 				};
 			}(console.log.bind(console), document.getElementById("debug")));
 		console.error = console.debug = console.info = console.log;
-		//		返回上一页
-		function checkpage() {
-			micoMqtt.stopMqtt(function(ret, err) {
-			});
+		
+//		返回上一页
+		function checkpage(){
 			window.location.href = "./devlist.html";
 		};
 	</script>
