@@ -253,15 +253,15 @@
 			}, function(ret, err) {
 				if (ret.status) {
 					obj.stopRecord();
-					var says = ret.wordStr; 
+					var says = ret.wordStr;
 					$("#speechimgid").attr("src", "../image/yuyin.png");
-					if(says.indexOf("指令") > -1 ){
-						if(says.indexOf("听") > -1 ){
+					if (says.indexOf("指令") > -1) {
+						if (says.indexOf("听") > -1) {
 							listenme = 1;
-						}else if(says.indexOf("取消") > -1 ){
+						} else if (says.indexOf("取消") > -1) {
 							listenme = 0;
 						}
-					}else{
+					} else {
 						var topic = device_id + '/in';
 						var command = speechCtrl(says);
 						publishcmd(topic, command);
